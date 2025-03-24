@@ -2,8 +2,9 @@ const express = require('express');
 const mysql = require('mysql');
 const crypto = require('crypto');
 
-const port = process.env.port || 3000;
+const port = process.env.PORT || 3000;
 const app = express();
+app.use(express.json());
 
 var connection = mysql.createConnection({
     host: 'sql5.freesqldatabase.com',
@@ -12,20 +13,22 @@ var connection = mysql.createConnection({
     database: 'sql5769203'
 });
 
-app.get('/api/signup', async (req, res) => {
+
+app.post('/api/signup', (req, res) => {
     const { username, password } = req.body;
     const pwd = encryptPassword(password);
     const date = transformDate(new Date());
-    connection.connect();
-    connection.query('INSERT INTO user (username, password, date) VALUES (?, ?, ?)', [username, pwd, date], function (error, results, fields) {
-        connection.end();
-        if (error) throw error;
+    connection.query('INSERT INTO user (username, password, signedup) VALUES (?, ?, ?)', [username, pwd, date], function (error, results, fields) {
+        if (error) {
+            console.error('Database query error: ', error);
+            return res.status(500).json({ success: false, message: 'Database query failed', error: error.sqlMessage });
+        }
         res.json({
             success: true,
             data: {
-                username:username,
-                encryptPassword:pwd,
-                date:date
+                username: username,
+                encryptPassword: pwd,
+                date: date
             }
         });
     });
@@ -41,7 +44,7 @@ app.get('/', async (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Server on the port ${port}`);
+    console.log(`Server running on port ${port}`);
 });
 
 function encryptPassword(password) {
